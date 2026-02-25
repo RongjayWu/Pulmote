@@ -33,6 +33,41 @@ migrate_working_dir/
 .pub/
 /build/
 
+# Android
+android/.gradle/
+android/app/build/
+android/local.properties
+
+# iOS
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/
+ios/build/
+ios/DerivedData/
+
+# macOS
+macos/Flutter/
+macos/build/
+macos/.symlinks/
+
+# Windows
+windows/Flutter/
+windows/build/
+
+# Linux
+linux/Flutter/
+linux/build/
+
+# Web
+web/.dart_tool/
+
+# Google Services
+android/app/google-services.json
+ios/Runner/GoogleService-Info.plist
+
+# Personal
+.env
+
 # Symbolication related
 app.*.symbols
 
