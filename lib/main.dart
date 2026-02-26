@@ -1,58 +1,29 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'core/theme/app_theme.dart';
+import 'core/router/app_router.dart';
 import 'views/home_page.dart';
 import 'views/login_page.dart';
 import 'models/user.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(const ProviderScope(child: PulmoteApp()));
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class PulmoteApp extends ConsumerWidget {
+  const PulmoteApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'PulMote - 萬用遙控器',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
-        useMaterial3: true,
-      ),
-      home: const AuthPage(),
+  Widget build(BuildContext context, WidgetRef ref) {
+    final router = ref.watch(appRouterProvider);
+
+    return MaterialApp.router(
+      title: 'Pulmote',
       debugShowCheckedModeBanner: false,
+      theme: AppTheme.light,
+      darkTheme: AppTheme.dark,
+      themeMode: ThemeMode.system,
+      routerConfig: router,
     );
-  }
-}
-
-/// 認證頁面 - 根據登入狀態決定顯示哪個頁面
-class AuthPage extends StatefulWidget {
-  const AuthPage({super.key});
-
-  @override
-  State<AuthPage> createState() => _AuthPageState();
-}
-
-class _AuthPageState extends State<AuthPage> {
-  User? _currentUser;
-
-  void _handleLoginSuccess(User user) {
-    setState(() {
-      _currentUser = user;
-    });
-  }
-
-  void _handleLogout() {
-    setState(() {
-      _currentUser = null;
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (_currentUser == null) {
-      return LoginPage(onLoginSuccess: _handleLoginSuccess);
-    } else {
-      return HomePage(user: _currentUser!, onLogout: _handleLogout);
-    }
   }
 }
