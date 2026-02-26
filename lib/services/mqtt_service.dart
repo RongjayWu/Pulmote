@@ -95,10 +95,12 @@ class MqttService {
 
     final topic = '${ApiConstants.mqttTopicPrefix}/$deviceTopic/ir/record';
     final builder = MqttClientPayloadBuilder();
-    builder.addString(jsonEncode({
-      'action': 'record',
-      'timestamp': DateTime.now().millisecondsSinceEpoch,
-    }));
+    builder.addString(
+      jsonEncode({
+        'action': 'record',
+        'timestamp': DateTime.now().millisecondsSinceEpoch,
+      }),
+    );
 
     _client!.publishMessage(topic, MqttQos.atLeastOnce, builder.payload!);
   }
@@ -108,7 +110,8 @@ class MqttService {
     if (_client == null || _state != MqttConnectionState.connected) return null;
 
     _client!.subscribe(topic, MqttQos.atLeastOnce);
-    return _client!.updates;
+    // 將 List<MqttReceivedMessage<MqttMessage>> 展開為單一訊息
+    return _client!.updates?.expand((list) => list);
   }
 
   /// Disconnect

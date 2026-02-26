@@ -12,8 +12,14 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  final GoogleSignIn _googleSignIn = GoogleSignIn();
+  final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
   bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _googleSignIn.initialize();
+  }
 
   Future<void> _handleGoogleSignIn() async {
     setState(() {
@@ -21,7 +27,8 @@ class _LoginPageState extends State<LoginPage> {
     });
 
     try {
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      final GoogleSignInAccount? googleUser =
+          await _googleSignIn.authenticate();
 
       if (googleUser != null) {
         // 創建用戶對象

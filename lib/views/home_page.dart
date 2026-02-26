@@ -16,12 +16,13 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   late List<SmartDevice> devices;
   int _selectedDeviceIndex = -1;
-  final GoogleSignIn _googleSignIn = GoogleSignIn();
+  final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
 
   @override
   void initState() {
     super.initState();
     _initializeDevices();
+    _googleSignIn.initialize();
   }
 
   void _initializeDevices() {
