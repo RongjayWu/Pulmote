@@ -43,7 +43,11 @@ class _AddDevicePageState extends ConsumerState<AddDevicePage> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('設備新增成功！')),
         );
-        context.go('/');
+        if (context.canPop()) {
+          context.pop();
+        } else {
+          context.go('/');
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -63,10 +67,6 @@ class _AddDevicePageState extends ConsumerState<AddDevicePage> {
 
     return Scaffold(
       appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: () => context.go('/'),
-        ),
         title: const Text('新增設備'),
       ),
       body: SingleChildScrollView(

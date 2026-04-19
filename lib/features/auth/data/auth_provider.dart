@@ -72,4 +72,13 @@ class AuthNotifier extends AsyncNotifier<User?> {
     await ref.read(secureStorageProvider).delete(key: 'token');
     state = const AsyncData(null);
   }
+
+  /// Called by the Dio 401 interceptor when the server rejects the current token.
+  /// Token is already cleared by the interceptor; just flip the state so the
+  /// router redirects back to /login.
+  void handleUnauthorized() {
+    if (state.valueOrNull != null) {
+      state = const AsyncData(null);
+    }
+  }
 }

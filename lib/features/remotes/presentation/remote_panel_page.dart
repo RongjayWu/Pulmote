@@ -15,74 +15,106 @@ class RemotePanelPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
-    final signals = ref.watch(signalsProvider(remoteId));
+    final signalsAsync = ref.watch(signalsProvider(remoteId));
 
     return Scaffold(
       backgroundColor: colors.surface,
       appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: () => context.go('/remotes/$remoteId'),
-        ),
         title: const Text('遙控面板'),
         actions: [
           IconButton(
             icon: const Icon(Icons.edit_rounded),
             tooltip: '編輯按鈕',
-            onPressed: () => context.go('/remotes/$remoteId'),
+            onPressed: () => context.push('/remotes/$remoteId'),
           ),
         ],
       ),
-      body: signals.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, _) => Center(
-          child: Text('載入失敗', style: TextStyle(color: colors.error)),
-        ),
-        data: (signalList) {
-          if (signalList.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
+      body: RefreshIndicator(
+        onRefresh: () async {
+          ref.invalidate(signalsProvider(remoteId));
+          await ref.read(signalsProvider(remoteId).future);
+        },
+        child: signalsAsync.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (err, _) => ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            children: [
+              const Gap(120),
+              Center(
+                child: Text('載入失敗', style: TextStyle(color: colors.error)),
+              ),
+            ],
+          ),
+          data: (signalList) {
+            if (signalList.isEmpty) {
+              return ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
                 children: [
-                  Icon(
-                    Icons.touch_app_rounded,
-                    size: 64,
-                    color: colors.onSurfaceVariant.withValues(alpha: 0.5),
-                  ),
-                  const Gap(16),
-                  Text(
-                    '還沒有任何按鈕',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      color: colors.onSurfaceVariant,
-                    ),
-                  ),
-                  const Gap(8),
-                  FilledButton.tonal(
-                    onPressed: () => context.go('/remotes/$remoteId'),
-                    child: const Text('前往設定'),
+                  const Gap(120),
+                  _EmptyPanel(
+                    onEdit: () => context.push('/remotes/$remoteId'),
                   ),
                 ],
-              ),
-            );
-          }
-
-          return Padding(
-            padding: const EdgeInsets.all(20),
-            child: GridView.builder(
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3,
-                mainAxisSpacing: 16,
-                crossAxisSpacing: 16,
-                childAspectRatio: 1,
-              ),
-              itemCount: signalList.length,
-              itemBuilder: (context, index) {
-                return _IrButton(signal: signalList[index]);
+              );
+            }
+            return LayoutBuilder(
+              builder: (context, constraints) {
+                // Responsive grid: 3 cols on phones, 4 on large phones, 5+ on tablets
+                final cols = constraints.maxWidth >= 900
+                    ? 6
+                    : constraints.maxWidth >= 720
+                        ? 5
+                        : constraints.maxWidth >= 480
+                            ? 4
+                            : 3;
+                return GridView.builder(
+                  padding: const EdgeInsets.all(20),
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: cols,
+                    mainAxisSpacing: 16,
+                    crossAxisSpacing: 16,
+                    childAspectRatio: 1,
+                  ),
+                  itemCount: signalList.length,
+                  itemBuilder: (context, index) =>
+                      _IrButton(signal: signalList[index]),
+                );
               },
-            ),
-          );
-        },
+            );
+          },
+        ),
       ),
+    );
+  }
+}
+
+class _EmptyPanel extends StatelessWidget {
+  final VoidCallback onEdit;
+  const _EmptyPanel({required this.onEdit});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(
+          Icons.touch_app_rounded,
+          size: 64,
+          color: colors.onSurfaceVariant.withValues(alpha: 0.5),
+        ),
+        const Gap(16),
+        Text(
+          '還沒有任何按鈕',
+          style: theme.textTheme.titleMedium?.copyWith(
+            color: colors.onSurfaceVariant,
+          ),
+        ),
+        const Gap(12),
+        FilledButton.tonal(onPressed: onEdit, child: const Text('前往設定錄製')),
+      ],
     );
   }
 }
@@ -97,8 +129,8 @@ class _IrButton extends ConsumerStatefulWidget {
 
 class _IrButtonState extends ConsumerState<_IrButton>
     with SingleTickerProviderStateMixin {
-  late AnimationController _animCtrl;
-  late Animation<double> _scaleAnim;
+  late final AnimationController _animCtrl;
+  late final Animation<double> _scaleAnim;
   bool _sending = false;
 
   @override
@@ -106,10 +138,10 @@ class _IrButtonState extends ConsumerState<_IrButton>
     super.initState();
     _animCtrl = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 100),
+      duration: const Duration(milliseconds: 120),
     );
-    _scaleAnim = Tween<double>(begin: 1.0, end: 0.9).animate(
-      CurvedAnimation(parent: _animCtrl, curve: Curves.easeInOut),
+    _scaleAnim = Tween<double>(begin: 1.0, end: 0.92).animate(
+      CurvedAnimation(parent: _animCtrl, curve: Curves.easeOut),
     );
   }
 
@@ -146,53 +178,51 @@ class _IrButtonState extends ConsumerState<_IrButton>
         widget.signal.name.contains('開') ||
         widget.signal.name.contains('關');
 
-    return AnimatedBuilder(
-      animation: _scaleAnim,
-      builder: (context, child) {
-        return Transform.scale(
-          scale: _scaleAnim.value,
-          child: child,
-        );
-      },
+    final bgColor =
+        isPower ? colors.errorContainer : colors.surfaceContainerHigh;
+    final fgColor = isPower ? colors.error : colors.primary;
+    final labelColor =
+        isPower ? colors.onErrorContainer : colors.onSurface;
+
+    return ScaleTransition(
+      scale: _scaleAnim,
       child: Material(
-        color: isPower ? colors.errorContainer : colors.surfaceContainerHigh,
+        color: bgColor,
         borderRadius: BorderRadius.circular(20),
-        elevation: 1,
+        elevation: 0,
         child: InkWell(
           onTap: _sending ? null : _sendCommand,
           borderRadius: BorderRadius.circular(20),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              if (_sending)
-                SizedBox(
-                  width: 28,
-                  height: 28,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2.5,
-                    color: isPower ? colors.error : colors.primary,
+          splashColor: fgColor.withValues(alpha: 0.15),
+          child: Padding(
+            padding: const EdgeInsets.all(8),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (_sending)
+                  SizedBox(
+                    width: 28,
+                    height: 28,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.5,
+                      color: fgColor,
+                    ),
+                  )
+                else
+                  Icon(_getIcon(widget.signal.icon), size: 28, color: fgColor),
+                const Gap(8),
+                Text(
+                  widget.signal.name,
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: labelColor,
                   ),
-                )
-              else
-                Icon(
-                  _getIcon(widget.signal.icon),
-                  size: 28,
-                  color: isPower ? colors.error : colors.primary,
                 ),
-              const Gap(8),
-              Text(
-                widget.signal.name,
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: isPower
-                      ? colors.onErrorContainer
-                      : colors.onSurface,
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

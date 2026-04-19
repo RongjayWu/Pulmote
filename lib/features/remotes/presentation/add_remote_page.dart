@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gap/gap.dart';
-import '../../remotes/data/remotes_provider.dart';
-import '../../../models/models.dart';
+import '../../devices/data/devices_provider.dart';
 import '../../../services/api_client.dart';
 
 class AddRemotePage extends ConsumerStatefulWidget {
@@ -50,11 +49,18 @@ class _AddRemotePageState extends ConsumerState<AddRemotePage> {
         'icon': _selectedIcon,
       });
 
+      // Refresh parent list so the new remote shows up immediately
+      ref.invalidate(remotesForDeviceProvider(widget.deviceId));
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('遙控器新增成功！')),
         );
-        context.go('/');
+        if (context.canPop()) {
+          context.pop();
+        } else {
+          context.go('/');
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -74,10 +80,6 @@ class _AddRemotePageState extends ConsumerState<AddRemotePage> {
 
     return Scaffold(
       appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: () => context.go('/'),
-        ),
         title: const Text('新增遙控器'),
       ),
       body: SingleChildScrollView(
